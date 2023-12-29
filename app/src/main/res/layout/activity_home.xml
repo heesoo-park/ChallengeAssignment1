@@ -46,7 +46,7 @@
         app:layout_constraintBottom_toTopOf="@+id/btn_home_finish"
         app:layout_constraintCircle="@id/iv_home_profile"
         app:layout_constraintCircleAngle="200"
-        app:layout_constraintCircleRadius="180dp"
+        app:layout_constraintCircleRadius="130dp"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -79,6 +79,15 @@
         app:layout_constraintCircleRadius="150dp"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <Button
+        android:id="@+id/btn_home_user_edit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="사용자 수정"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@id/btn_home_finish"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
     <Button
         android:id="@+id/btn_home_finish"
         android:layout_width="match_parent"
