@@ -1,36 +1,33 @@
 package com.example.challengeassginment1
 
+import android.os.Parcelable
+import com.example.challengeassginment1.signup.SignUpUserEntity
+
 // 아이디/비밀번호 저장공간
 object Info {
-    private val info_list = mutableListOf<User>()
+    private val info_list = mutableListOf<SignUpUserEntity>()
 
     fun setInfo(name: String, email: String, password: String) {
-        info_list += User(name, email, password)
+        info_list += SignUpUserEntity(name, email, password)
     }
 
-    fun getInfo(email: String): User {
+    fun getInfo(name: String): SignUpUserEntity {
         for (user in info_list) {
-            if (user.email == email) {
+            if (user.name == name) {
                 return user
             }
         }
 
-        return User("", "", "")
+        return SignUpUserEntity("", "", "")
     }
 
     fun findInfo(name: String, email: String, password: String): Boolean =
-        info_list.contains(User(name, email, password))
+        info_list.contains(SignUpUserEntity(name, email, password))
 
-    fun editInfo(email: String, user: User) {
+    fun editInfo(email: String, signUpUserEntity: SignUpUserEntity) {
         var target = info_list.find { it.email == email }
-        target?.name = user.name
-        target?.email = user.email
-        target?.password = user.password
+        target?.name = signUpUserEntity.name
+        target?.email = signUpUserEntity.email
+        target?.password = signUpUserEntity.password
     }
-
-    data class User (
-        var name: String,
-        var email: String,
-        var password: String,
-    )
 }

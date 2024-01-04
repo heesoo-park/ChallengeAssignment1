@@ -1,4 +1,4 @@
-package com.example.challengeassginment1
+package com.example.challengeassginment1.signup
 
 object SignUpValidExtension {
     fun String.includeDotCom() = this.contains(".com")

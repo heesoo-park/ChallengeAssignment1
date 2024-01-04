@@ -1,6 +1,7 @@
-package com.example.challengeassginment1
+package com.example.challengeassginment1.signup
 
 import androidx.annotation.StringRes
+import com.example.challengeassginment1.R
 
 enum class SignUpErrorMessage(
     @StringRes val message: Int

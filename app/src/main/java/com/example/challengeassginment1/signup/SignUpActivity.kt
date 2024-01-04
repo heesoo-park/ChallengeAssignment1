@@ -1,5 +1,8 @@
-package com.example.challengeassginment1
+package com.example.challengeassginment1.signup
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -9,19 +12,42 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import com.example.challengeassginment1.Info.editInfo
 import com.example.challengeassginment1.Info.setInfo
-import com.example.challengeassginment1.SignUpValidExtension.includeDotCom
-import com.example.challengeassginment1.SignUpValidExtension.includeNumber
-import com.example.challengeassginment1.SignUpValidExtension.includeSpecialCharacters
-import com.example.challengeassginment1.SignUpValidExtension.includeUpperCase
+import com.example.challengeassginment1.R
+import com.example.challengeassginment1.signup.SignUpValidExtension.includeDotCom
+import com.example.challengeassginment1.signup.SignUpValidExtension.includeNumber
+import com.example.challengeassginment1.signup.SignUpValidExtension.includeSpecialCharacters
+import com.example.challengeassginment1.signup.SignUpValidExtension.includeUpperCase
 
 class SignUpActivity : AppCompatActivity() {
+
+    companion object {
+
+        const val EXTRA_ENTRY_TYPE = "extra_entry_type"
+        const val EXTRA_USER_ENTITY = "extra_user_entity"
+
+        // 인텐트를 받는 함수
+        // SignUpActivity를 실행시킬 때에 대한 스펙(인터페이스)
+        // 한정된 정보를 받기 위한 인터페이스
+        fun newIntent(
+            context: Context,
+            entryType: SignUpEntryType,
+            userEntity: SignUpUserEntity
+        ): Intent = Intent(
+            context,
+            SignUpActivity::class.java
+        ).apply {
+            // enum class 프로퍼티에 ordinal을 붙인다는 건 해당 프로퍼티의 인덱스(Int)를 가져온다는 것
+            putExtra(EXTRA_ENTRY_TYPE, entryType.ordinal)
+            putExtra(EXTRA_USER_ENTITY, userEntity)
+        }
+    }
+
     private val editSignUpName: EditText by lazy { findViewById(R.id.edit_signup_name) }
     private val editSignUpEmailFront: EditText by lazy { findViewById(R.id.edit_signup_email_front) }
     private val editSignUpEmailBack: EditText by lazy { findViewById(R.id.edit_signup_email_back) }
@@ -48,10 +74,33 @@ class SignUpActivity : AppCompatActivity() {
     // 저장될 이메일 주소(xxx.com의 형식)
     private var serviceProvider = ""
 
-    // 추가한 부분 ***********************************************************
-    private var type: String = ""
-    private var userEmail: String = ""
-    // 추가한 부분 ***********************************************************
+    // 서비스 제공자 리스트
+    private val serviceProviderList
+        get() = listOf(
+            getString(R.string.sign_up_email_provider_gmail),
+            getString(R.string.sign_up_email_provider_kakao),
+            getString(R.string.sign_up_email_provider_naver),
+            getString(R.string.sign_up_email_provider_direct)
+        )
+
+    // 인텐트로 넘어온 엔트리 타입을 저장하는 변수
+    private val entryType: SignUpEntryType by lazy {
+        SignUpEntryType.getEntryType(
+            intent?.getIntExtra(
+                EXTRA_ENTRY_TYPE,
+                SignUpEntryType.CREATE.ordinal
+            )
+        )
+    }
+
+    // 인텐트로 넘어온 유저 정보를 저장하는 변수
+    private val userEntity: SignUpUserEntity? by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra(EXTRA_USER_ENTITY, SignUpUserEntity::class.java)
+        } else {
+            intent?.getParcelableExtra(EXTRA_USER_ENTITY)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,51 +110,83 @@ class SignUpActivity : AppCompatActivity() {
     }
 
     private fun initView() {
-        checkEditPage()
         setOnFocusChangeListener()
         setTextChangedListener()
         setServiceProvider()
         setBtnSignupClickListener()
+        setViewText()
     }
 
-    private fun checkEditPage() {
-        type = intent.getStringExtra("type") ?: ""
-        if (type != "signup") {
-            userEmail = intent.getStringExtra("email").toString()
-            val loginUser = Info.getInfo(userEmail)
-
-            editSignUpName.setText(loginUser.name)
-            editSignUpEmailFront.setText(loginUser.email.substringBefore('@'))
-            editSignUpPassword.setText(loginUser.password)
-            tvSignUpPasswordError.text = getString(SignUpErrorMessage.PASS.message)
-            editSignUpPasswordCheck.setText(loginUser.password)
-            tvSignUpPasswordCheckError.text = getString(SignUpErrorMessage.PASSWORD_CHECK_OK.message)
-            printPasswordCheckErrorText()
-            btnSignup.text = getString(R.string.sign_up_edit)
+    private fun setViewText() {
+        // 엔트리 타입이 CREATE라면 리턴
+        if (entryType == SignUpEntryType.CREATE) {
+            return
         }
+
+        // 이름 칸 채우기
+        editSignUpName.setText(userEntity?.name)
+        // 이메일 앞 칸 채우기
+        editSignUpEmailFront.setText(userEntity?.email?.substringBefore('@'))
+        // 비밀번호 칸 채우기
+        editSignUpPassword.setText(userEntity?.password)
+        // 비밀번호 에러 메세지 설정
+        tvSignUpPasswordError.text = getString(SignUpErrorMessage.PASS.message)
+        // 비밀번호 확인 칸 채우기
+        editSignUpPasswordCheck.setText(userEntity?.password)
+        // 비밀번호 확인 에러 메세지 설정
+        printPasswordCheckErrorText()
+
+        // 서비스 제공자 스피너와 입력칸 채우기
+        val userServiceProvider = userEntity?.email?.substringAfter('@')
+        Log.d("dkj", "$userServiceProvider")
+        val index = serviceProviderList.indexOf(userServiceProvider)
+        spinnerSignUp.setSelection(
+            if (index < 0) {
+                editSignUpEmailBack.setText(userServiceProvider)
+                serviceProviderList.lastIndex
+            } else {
+                index
+            }
+        )
+
+        // 회원수정버튼 활성화
+        setButtonEnable()
     }
 
     // 회원가입 버튼 클릭 이벤트 함수
     private fun setBtnSignupClickListener() {
-        btnSignup.setOnClickListener {
-            val name = editSignUpName.text.toString()
-            // 이메일 입력칸의 내용과 이메일 주소 입력칸의 내용을 중간에 @ 포함해서 합치기
-            val email = editSignUpEmailFront.text.toString() + "@" + serviceProvider
-            val password = editSignUpPassword.text.toString()
+        with(btnSignup) {
+            // 엔트리 타입에 따라 버튼의 문구 변경
+            setText(
+                when (entryType) {
+                    SignUpEntryType.UPDATE -> R.string.sign_up_edit
+                    else -> R.string.sign_up_confirm
+                }
+            )
+            // 엔트리 타입에 따라 버튼 클릭 시 수행하는 함수 변경
+            setOnClickListener {
+                if (isButtonEnable()) {
+                    val name = editSignUpName.text.toString()
+                    // 이메일 입력칸의 내용과 이메일 주소 입력칸의 내용을 중간에 @ 포함해서 합치기
+                    val email = editSignUpEmailFront.text.toString() + "@" + serviceProvider
+                    val password = editSignUpPassword.text.toString()
 
-            if (type != "signup") {
-                editInfo(userEmail, Info.User(name, email, password))
-            } else {
-                // 정보 저장
-                setInfo(name, email, password)
+                    when (entryType) {
+                        SignUpEntryType.UPDATE -> editInfo(
+                            userEntity?.email!!,
+                            SignUpUserEntity(name, email, password)
+                        )
+                        else -> setInfo(name, email, password)
+                    }
+
+                    // 로그인 액티비티로 보낼 값 설정
+                    intent.putExtra("name", name)
+                    intent.putExtra("email", email)
+                    intent.putExtra("password", password)
+                    setResult(RESULT_OK, intent)
+                    finish()
+                }
             }
-
-            // 로그인 액티비티로 보낼 값 설정
-            intent.putExtra("name", name)
-            intent.putExtra("email", email)
-            intent.putExtra("password", password)
-            setResult(RESULT_OK, intent)
-            finish()
         }
     }
 
@@ -133,30 +214,10 @@ class SignUpActivity : AppCompatActivity() {
     private fun setServiceProvider() {
         // 어댑터 설정
         val adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_item, listOf(
-                getString(R.string.sign_up_email_provider_gmail),
-                getString(R.string.sign_up_email_provider_kakao),
-                getString(R.string.sign_up_email_provider_naver),
-                getString(R.string.sign_up_email_provider_direct)
-            )
+            this, android.R.layout.simple_spinner_item, serviceProviderList
         )
         // 어댑터 연결
         spinnerSignUp.adapter = adapter
-
-        if (type != "signup") {
-            val loginUser = Info.getInfo(userEmail)
-            when (loginUser.email.substringAfter('@')) {
-                getString(R.string.sign_up_email_provider_gmail) -> spinnerSignUp.setSelection(0)
-                getString(R.string.sign_up_email_provider_kakao) -> spinnerSignUp.setSelection(1)
-                getString(R.string.sign_up_email_provider_naver) -> spinnerSignUp.setSelection(2)
-                else -> {
-                    editSignUpEmailBack.setText(loginUser.email.substringAfter('@'))
-                    spinnerSignUp.setSelection(3)
-                }
-            }
-
-            setButtonEnable()
-        }
 
         // Spinner 아이템 선택 리스너
         spinnerSignUp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -186,7 +247,12 @@ class SignUpActivity : AppCompatActivity() {
         // 서비스 제공자 뷰 노출 처리
         editSignUpEmailBack.isVisible = type
         // 해당 아이템 내용을 저장
-        serviceProvider = s
+        val index = serviceProviderList.indexOf(userEntity?.email?.substringAfter('@'))
+        serviceProvider = if (index < 0) {
+            s
+        } else {
+            userEntity?.email?.substringAfter('@')!!
+        }
     }
 
     private fun setButtonEnable() {

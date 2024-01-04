@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.challengeassginment1.Info.findInfo
+import com.example.challengeassginment1.signup.SignUpActivity
 
 class SignInActivity : AppCompatActivity() {
     // 회원가입 액티비티와 테이터를 주고 받기 위한 변수
