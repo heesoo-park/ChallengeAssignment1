@@ -8,15 +8,18 @@ object Info {
         info_list += User(name, email, password)
     }
 
-
-    fun findInfo(name: String, email: String, password: String): Boolean {
-        if (info_list.contains(User(name, email, password))) {
-
-            return true
+    fun getInfo(email: String): User {
+        for (user in info_list) {
+            if (user.email == email) {
+                return user
+            }
         }
 
-        return false
+        return User("", "", "")
     }
+
+    fun findInfo(name: String, email: String, password: String): Boolean =
+        info_list.contains(User(name, email, password))
 
     fun editInfo(email: String, user: User) {
         var target = info_list.find { it.email == email }

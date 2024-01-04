@@ -3,6 +3,7 @@ package com.example.challengeassginment1
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -17,19 +18,23 @@ class HomeActivity : AppCompatActivity() {
 
     private val tvHomeName: TextView by lazy { findViewById(R.id.tv_home_name) }
     private val tvHomeId: TextView by lazy { findViewById(R.id.tv_home_id) }
-    private var email: String = ""
+    private lateinit var name: String
+    private lateinit var email: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        tvHomeName.text = intent.getStringExtra("name")
-        tvHomeId.text = intent.getStringExtra("email")
+        name = intent.getStringExtra("name").toString()
+        email = intent.getStringExtra("email").toString()
+
+        tvHomeName.text = name
+        tvHomeId.text = email
 
         // registerForActivityResult 변수 세팅
         resultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
-                val name = result.data?.getStringExtra("name") ?: ""
+                name = result.data?.getStringExtra("name") ?: ""
                 email = result.data?.getStringExtra("email") ?: ""
 
                 tvHomeName.text = name

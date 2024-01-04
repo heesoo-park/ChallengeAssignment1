@@ -1,6 +1,7 @@
 package com.example.challengeassginment1
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -8,6 +9,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -48,24 +50,39 @@ class SignUpActivity : AppCompatActivity() {
 
     // 추가한 부분 ***********************************************************
     private var type: String = ""
-    private val userEmail: String = ""
+    private var userEmail: String = ""
     // 추가한 부분 ***********************************************************
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_signup)
 
-        type = intent.getStringExtra("type") ?: ""
-        if (type != "signup") btnSignup.text = getString(R.string.sign_up_edit)
-
         initView()
     }
 
     private fun initView() {
+        checkEditPage()
         setOnFocusChangeListener()
         setTextChangedListener()
         setServiceProvider()
         setBtnSignupClickListener()
+    }
+
+    private fun checkEditPage() {
+        type = intent.getStringExtra("type") ?: ""
+        if (type != "signup") {
+            userEmail = intent.getStringExtra("email").toString()
+            val loginUser = Info.getInfo(userEmail)
+
+            editSignUpName.setText(loginUser.name)
+            editSignUpEmailFront.setText(loginUser.email.substringBefore('@'))
+            editSignUpPassword.setText(loginUser.password)
+            tvSignUpPasswordError.text = getString(SignUpErrorMessage.PASS.message)
+            editSignUpPasswordCheck.setText(loginUser.password)
+            tvSignUpPasswordCheckError.text = getString(SignUpErrorMessage.PASSWORD_CHECK_OK.message)
+            printPasswordCheckErrorText()
+            btnSignup.text = getString(R.string.sign_up_edit)
+        }
     }
 
     // 회원가입 버튼 클릭 이벤트 함수
@@ -125,6 +142,22 @@ class SignUpActivity : AppCompatActivity() {
         )
         // 어댑터 연결
         spinnerSignUp.adapter = adapter
+
+        if (type != "signup") {
+            val loginUser = Info.getInfo(userEmail)
+            when (loginUser.email.substringAfter('@')) {
+                getString(R.string.sign_up_email_provider_gmail) -> spinnerSignUp.setSelection(0)
+                getString(R.string.sign_up_email_provider_kakao) -> spinnerSignUp.setSelection(1)
+                getString(R.string.sign_up_email_provider_naver) -> spinnerSignUp.setSelection(2)
+                else -> {
+                    editSignUpEmailBack.setText(loginUser.email.substringAfter('@'))
+                    spinnerSignUp.setSelection(3)
+                }
+            }
+
+            setButtonEnable()
+        }
+
         // Spinner 아이템 선택 리스너
         spinnerSignUp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             // 아이템을 선택하는 경우 호출
@@ -157,13 +190,17 @@ class SignUpActivity : AppCompatActivity() {
     }
 
     private fun setButtonEnable() {
-        btnSignup.isEnabled = tvSignUpNameError.text.isEmpty()
+        btnSignup.isEnabled = isButtonEnable()
+    }
+
+    private fun isButtonEnable(): Boolean =
+        tvSignUpNameError.text.isEmpty()
                 && editSignUpName.text.isNotEmpty()
                 && tvSignUpEmailError.text.isEmpty()
                 && editSignUpEmailFront.text.isNotEmpty()
                 && tvSignUpPasswordError.text.isEmpty()
                 && (tvSignUpPasswordCheckError.text.toString() == getString(SignUpErrorMessage.PASSWORD_CHECK_OK.message))
-    }
+
 
     private fun EditText.setErrorText() {
         when (this) {
