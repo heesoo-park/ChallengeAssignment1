@@ -14,6 +14,10 @@ import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import com.example.challengeassginment1.Info.editInfo
 import com.example.challengeassginment1.Info.setInfo
+import com.example.challengeassginment1.SignUpValidExtension.includeDotCom
+import com.example.challengeassginment1.SignUpValidExtension.includeNumber
+import com.example.challengeassginment1.SignUpValidExtension.includeSpecialCharacters
+import com.example.challengeassginment1.SignUpValidExtension.includeUpperCase
 
 class SignUpActivity : AppCompatActivity() {
     private val editSignUpName: EditText by lazy { findViewById(R.id.edit_signup_name) }
@@ -50,10 +54,10 @@ class SignUpActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_signup)
-        // 추가한 부분 ***********************************************************
+
         type = intent.getStringExtra("type") ?: ""
         if (type != "signup") btnSignup.text = getString(R.string.sign_up_edit)
-        // 추가한 부분 ***********************************************************
+
         initView()
     }
 
@@ -72,14 +76,12 @@ class SignUpActivity : AppCompatActivity() {
             val email = editSignUpEmailFront.text.toString() + "@" + serviceProvider
             val password = editSignUpPassword.text.toString()
 
-            // 추가한 부분 ***********************************************************
             if (type != "signup") {
                 editInfo(userEmail, Info.User(name, email, password))
             } else {
                 // 정보 저장
                 setInfo(name, email, password)
             }
-            // 추가한 부분 ***********************************************************
 
             // 로그인 액티비티로 보낼 값 설정
             intent.putExtra("name", name)
@@ -160,7 +162,7 @@ class SignUpActivity : AppCompatActivity() {
                 && tvSignUpEmailError.text.isEmpty()
                 && editSignUpEmailFront.text.isNotEmpty()
                 && tvSignUpPasswordError.text.isEmpty()
-                && (tvSignUpPasswordCheckError.text.toString() == getString(R.string.sign_up_password_check_ok))
+                && (tvSignUpPasswordCheckError.text.toString() == getString(SignUpErrorMessage.PASSWORD_CHECK_OK.message))
     }
 
     private fun EditText.setErrorText() {
@@ -174,7 +176,7 @@ class SignUpActivity : AppCompatActivity() {
             editSignUpPassword ->
                 tvSignUpPasswordError.text = if (editSignUpPassword.text.isEmpty()) {
                     changeTextColor(tvSignUpPasswordError, R.color.grey)
-                    getString(R.string.sign_up_password_hint)
+                    getString(SignUpErrorMessage.PASSWORD_HINT.message)
                 } else {
                     changeTextColor(tvSignUpPasswordError, R.color.red)
                     printPasswordErrorText()
@@ -185,65 +187,70 @@ class SignUpActivity : AppCompatActivity() {
         }
     }
 
-    private fun printNameErrorText(): String = if (editSignUpName.text.toString().isEmpty()) {
-        getString(R.string.sign_up_name_error)
-    } else {
-        ""
-    }
+    private fun printNameErrorText(): String = getString(
+        if (editSignUpName.text.toString().isEmpty()) {
+            SignUpErrorMessage.NAME_BLANK
+        } else {
+            SignUpErrorMessage.PASS
+        }.message
+    )
 
     private fun printEmailErrorText(): String {
         val frontText = editSignUpEmailFront.text.toString()
         val backText = editSignUpEmailBack.text.toString()
-        return when {
-            backText.isNotEmpty() -> {
-                if (!backText.contains(".com")) {
-                    getString(R.string.sign_up_email_back_format_error)
-                } else {
-                    serviceProvider = backText
-                    ""
+        return getString(
+            when {
+                backText.isNotEmpty() -> {
+                    if (backText.includeDotCom().not()) {
+                        SignUpErrorMessage.EMAIL_COM
+                    } else {
+                        serviceProvider = backText
+                        SignUpErrorMessage.PASS
+                    }
                 }
-            }
 
-            backText.isEmpty() && frontText.isNotEmpty() -> {
-                if (editSignUpEmailBack.visibility != View.GONE) {
-                    getString(R.string.sign_up_email_back_error)
-                } else {
-                    ""
+                backText.isEmpty() && frontText.isNotEmpty() -> {
+                    if (editSignUpEmailBack.isVisible) {
+                        SignUpErrorMessage.EMAIL_SERVICE_PROVIDER
+                    } else {
+                        SignUpErrorMessage.PASS
+                    }
                 }
-            }
 
-            frontText.isEmpty() -> getString(R.string.sign_up_email_error)
-            else -> ""
-        }
+                frontText.isEmpty() -> SignUpErrorMessage.EMAIL_BLANK
+                else -> SignUpErrorMessage.PASS
+            }.message
+        )
     }
 
     private fun printPasswordErrorText(): String {
         val text = editSignUpPassword.text.toString()
-        val specialCharacterRegex = Regex("[!@#\$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]+")
-        val upperCaseRegex = Regex("[A-Z]")
-        val numberRegex = Regex("[0-9]")
-        return when {
-            // 비밀번호의 길이 체크하고 에러 텍스트 노출
-            text.length < 8 || text.length >= 20 -> getString(R.string.sign_up_password_error_length)
-            // 비밀번호의 대문자 포함 여부 체크하고 에러 텍스트 노출
-            !upperCaseRegex.containsMatchIn(text) -> getString(R.string.sign_up_password_error_upper)
-            // 비밀번호의 숫자 포함 여부 체크하고 에러 텍스트 노출
-            !numberRegex.containsMatchIn(text) -> getString(R.string.sign_up_password_error_number)
-            // 비밀번호의 특수문자 포함 여부 체크하고 에러 텍스트 노출
-            !specialCharacterRegex.containsMatchIn(text) -> getString(R.string.sign_up_password_error_special)
-            // 통과
-            else -> ""
-        }
+        return getString(
+            when {
+                // 비밀번호의 길이 체크하고 에러 텍스트 노출
+                text.length < 8 || text.length >= 20 -> SignUpErrorMessage.PASSWORD_LENGTH
+                // 비밀번호의 대문자 포함 여부 체크하고 에러 텍스트 노출
+                text.includeUpperCase().not() -> SignUpErrorMessage.PASSWORD_UPPER_CASE
+                // 비밀번호의 숫자 포함 여부 체크하고 에러 텍스트 노출
+                text.includeNumber().not() -> SignUpErrorMessage.PASSWORD_NUMBER
+                // 비밀번호의 특수문자 포함 여부 체크하고 에러 텍스트 노출
+                text.includeSpecialCharacters()
+                    .not() -> SignUpErrorMessage.PASSWORD_SPECIAL_CHARACTERS
+                // 통과
+                else -> SignUpErrorMessage.PASS
+            }.message
+        )
     }
 
-    private fun printPasswordCheckErrorText(): String =
+    private fun printPasswordCheckErrorText(): String = getString(
         if (editSignUpPassword.text.toString() != editSignUpPasswordCheck.text.toString()) {
             changeTextColor(tvSignUpPasswordCheckError, R.color.red)
-            getString(R.string.sign_up_password_check_error)
+            SignUpErrorMessage.PASSWORD_CHECK_NOT
         } else {
             changeTextColor(tvSignUpPasswordCheckError, R.color.blue)
-            getString(R.string.sign_up_password_check_ok)
-        }
+            SignUpErrorMessage.PASSWORD_CHECK_OK
+        }.message
+    )
 
     private fun changeTextColor(textView: TextView, color: Int) {
         textView.setTextColor(
