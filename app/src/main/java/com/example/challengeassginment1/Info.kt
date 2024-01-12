@@ -7,8 +7,10 @@ import com.example.challengeassginment1.signup.SignUpUserEntity
 object Info {
     private val info_list = mutableListOf<SignUpUserEntity>()
 
-    fun setInfo(name: String, email: String, password: String) {
-        info_list += SignUpUserEntity(name, email, password)
+    fun setInfo(userInfo: SignUpUserEntity?) {
+        if (userInfo != null) {
+            info_list.add(userInfo)
+        }
     }
 
     fun getInfo(name: String): SignUpUserEntity {
@@ -21,13 +23,13 @@ object Info {
         return SignUpUserEntity("", "", "")
     }
 
-    fun findInfo(name: String, email: String, password: String): Boolean =
-        info_list.contains(SignUpUserEntity(name, email, password))
+    fun findInfo(info: SignUpUserEntity): Boolean =
+        info_list.contains(info)
 
-    fun editInfo(email: String, signUpUserEntity: SignUpUserEntity) {
+    fun editInfo(email: String?, userInfo: SignUpUserEntity?) {
         var target = info_list.find { it.email == email }
-        target?.name = signUpUserEntity.name
-        target?.email = signUpUserEntity.email
-        target?.password = signUpUserEntity.password
+        target?.name = userInfo?.name ?: ""
+        target?.email = userInfo?.email ?: ""
+        target?.password = userInfo?.password ?: ""
     }
 }

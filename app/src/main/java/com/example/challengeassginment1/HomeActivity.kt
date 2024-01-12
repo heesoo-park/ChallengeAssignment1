@@ -1,6 +1,7 @@
 package com.example.challengeassginment1
 
 import android.content.Intent
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
@@ -20,49 +21,52 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var name: String
     private lateinit var email: String
     private lateinit var password: String
+    private var info: SignUpUserEntity? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        name = intent.getStringExtra("name").toString()
-        email = intent.getStringExtra("email").toString()
-        password = intent.getStringExtra("password").toString()
+        info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("info", SignUpUserEntity::class.java)
+        } else {
+            intent.getParcelableExtra("info")
+        }
 
-        tvHomeName.text = name
-        tvHomeId.text = email
+        tvHomeName.text = info?.name
+        tvHomeId.text = info?.email
 
         // registerForActivityResult 변수 세팅
         resultLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 if (result.resultCode == RESULT_OK) {
+                    info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        result.data?.getParcelableExtra("info", SignUpUserEntity::class.java)
+                    } else {
+                        result.data?.getParcelableExtra("info")
+                    }
+
                     name = result.data?.getStringExtra("name") ?: ""
                     email = result.data?.getStringExtra("email") ?: ""
 
-                    tvHomeName.text = name
-                    tvHomeId.text = email
+                    tvHomeName.text = info?.name
+                    tvHomeId.text = info?.email
                 }
             }
 
-        // 추가한 부분 ***********************************************************
         val userEdit: Button = findViewById(R.id.btn_home_user_edit)
         userEdit.setOnClickListener {
-            val intent = Intent(this, SignUpActivity::class.java)
-            intent.putExtra("email", email)
-            // resultLauncher.launch(intent)
-
             resultLauncher.launch(
                 SignUpActivity.newIntent(
                     context = this@HomeActivity,
                     entryType = SignUpEntryType.UPDATE,
                     userEntity = SignUpUserEntity(
-                        name = name,
-                        email = email,
-                        password = password
+                        name = info?.name ?: "",
+                        email = info?.email ?: "",
+                        password = info?.password ?: ""
                     )
                 )
             )
         }
-        // 추가한 부분 ***********************************************************
     }
 }

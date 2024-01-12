@@ -1,33 +1,24 @@
 package com.example.challengeassginment1.signup
 
+import android.R
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.EditText
-import android.widget.Spinner
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
-import com.example.challengeassginment1.Info.editInfo
-import com.example.challengeassginment1.Info.setInfo
-import com.example.challengeassginment1.R
-import com.example.challengeassginment1.signup.SignUpValidExtension.includeDotCom
-import com.example.challengeassginment1.signup.SignUpValidExtension.includeNumber
-import com.example.challengeassginment1.signup.SignUpValidExtension.includeSpecialCharacters
-import com.example.challengeassginment1.signup.SignUpValidExtension.includeUpperCase
+import androidx.lifecycle.ViewModelProvider
+import com.example.challengeassginment1.databinding.ActivitySignupBinding
 
 class SignUpActivity : AppCompatActivity() {
 
     companion object {
-
         const val EXTRA_ENTRY_TYPE = "extra_entry_type"
         const val EXTRA_USER_ENTITY = "extra_user_entity"
 
@@ -48,39 +39,19 @@ class SignUpActivity : AppCompatActivity() {
         }
     }
 
-    private val editSignUpName: EditText by lazy { findViewById(R.id.edit_signup_name) }
-    private val editSignUpEmailFront: EditText by lazy { findViewById(R.id.edit_signup_email_front) }
-    private val editSignUpEmailBack: EditText by lazy { findViewById(R.id.edit_signup_email_back) }
-    private val editSignUpPassword: EditText by lazy { findViewById(R.id.edit_signup_password) }
-    private val editSignUpPasswordCheck: EditText by lazy { findViewById(R.id.edit_signup_password_check) }
+    // 뷰바인딩 변수
+    private val binding by lazy {
+        ActivitySignupBinding.inflate(layoutInflater)
+    }
 
+    // EditText들을 모아두는 리스트
     private val editTexts
         get() = listOf(
-            editSignUpName,
-            editSignUpEmailFront,
-            editSignUpEmailBack,
-            editSignUpPassword,
-            editSignUpPasswordCheck
-        )
-
-    private val tvSignUpNameError: TextView by lazy { findViewById(R.id.tv_signup_name_error) }
-    private val tvSignUpEmailError: TextView by lazy { findViewById(R.id.tv_signup_email_error) }
-    private val tvSignUpPasswordError: TextView by lazy { findViewById(R.id.tv_signup_password_error) }
-    private val tvSignUpPasswordCheckError: TextView by lazy { findViewById(R.id.tv_signup_password_check_error) }
-
-    private val spinnerSignUp: Spinner by lazy { findViewById(R.id.spinner_signup) }
-    private val btnSignup: Button by lazy { findViewById(R.id.btn_signup_check) }
-
-    // 저장될 이메일 주소(xxx.com의 형식)
-    private var serviceProvider = ""
-
-    // 서비스 제공자 리스트
-    private val serviceProviderList
-        get() = listOf(
-            getString(R.string.sign_up_email_provider_gmail),
-            getString(R.string.sign_up_email_provider_kakao),
-            getString(R.string.sign_up_email_provider_naver),
-            getString(R.string.sign_up_email_provider_direct)
+            binding.editSignupName,
+            binding.editSignupEmailFront,
+            binding.editSignupEmailBack,
+            binding.editSignupPassword,
+            binding.editSignupPasswordCheck
         )
 
     // 인텐트로 넘어온 엔트리 타입을 저장하는 변수
@@ -102,90 +73,111 @@ class SignUpActivity : AppCompatActivity() {
         }
     }
 
+    // 뷰모델 생성
+    private val viewModel by lazy {
+        ViewModelProvider(this@SignUpActivity, SignUpViewModelFactory(this, entryType, userEntity))[SignUpViewModel::class.java]
+    }
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_signup)
+        setContentView(binding.root)
 
         initView()
     }
 
+    // 초기 뷰 세팅
     private fun initView() {
+        initViewModel()
         setOnFocusChangeListener()
         setTextChangedListener()
         setServiceProvider()
         setBtnSignupClickListener()
-        setViewText()
+        setViewsText()
     }
 
-    private fun setViewText() {
-        // 엔트리 타입이 CREATE라면 리턴
-        if (entryType == SignUpEntryType.CREATE) {
-            return
+    // 초기 뷰모델 세팅
+    private fun initViewModel() = with(viewModel) {
+        userInfo.observe(this@SignUpActivity) {
+            // 이전 액티비티로 보낼 값 설정
+            val newIntent = Intent()
+            newIntent.putExtra("info", it)
+            setResult(RESULT_OK, newIntent)
+            finish()
         }
+        name.observe(this@SignUpActivity) {
+            binding.editSignupName.setText(it)
+        }
+        email.observe(this@SignUpActivity) {
+            binding.editSignupEmailFront.setText(it)
+        }
+        emailProvider.observe(this@SignUpActivity) {
+            binding.editSignupEmailBack.setText(it)
+        }
+        password.observe(this@SignUpActivity) {
+            binding.editSignupPassword.setText(it)
+        }
+        passwordCheck.observe(this@SignUpActivity) {
+            binding.editSignupPasswordCheck.setText(it)
+        }
+        nameErrorMsg.observe(this@SignUpActivity) {
+            binding.tvSignupNameError.text = getString(it)
+        }
+        emailErrorMsg.observe(this@SignUpActivity) {
+            binding.tvSignupEmailError.text = getString(it)
+        }
+        passwordErrorMsg.observe(this@SignUpActivity) {
+            binding.tvSignupPasswordError.text = getString(it)
+        }
+        passwordCheckErrorMsg.observe(this@SignUpActivity) {
+            binding.tvSignupPasswordCheckError.text = getString(it)
+        }
+        signUpText.observe(this@SignUpActivity) {
+            binding.btnSignupCheck.text = getString(it)
+        }
+        emailProviderVisible.observe(this@SignUpActivity) {
+            binding.editSignupEmailBack.isVisible = it
+        }
+        spinnerIdx.observe(this@SignUpActivity) {
+            binding.spinnerSignup.setSelection(it)
+        }
+        signupButtonEnable.observe(this@SignUpActivity) {
+            binding.btnSignupCheck.isEnabled = it
+        }
+        passwordTextColor.observe(this@SignUpActivity) {
+            binding.tvSignupPasswordError.setTextColor(
+                ContextCompat.getColor(
+                    this@SignUpActivity,
+                    it
+                )
+            )
+        }
+        passwordCheckTextColor.observe(this@SignUpActivity) {
+            binding.tvSignupPasswordCheckError.setTextColor(
+                ContextCompat.getColor(
+                    this@SignUpActivity,
+                    it
+                )
+            )
+        }
+    }
 
-        // 이름 칸 채우기
-        editSignUpName.setText(userEntity?.name)
-        // 이메일 앞 칸 채우기
-        editSignUpEmailFront.setText(userEntity?.email?.substringBefore('@'))
-        // 비밀번호 칸 채우기
-        editSignUpPassword.setText(userEntity?.password)
-        // 비밀번호 에러 메세지 설정
-        tvSignUpPasswordError.text = getString(SignUpErrorMessage.PASS.message)
-        // 비밀번호 확인 칸 채우기
-        editSignUpPasswordCheck.setText(userEntity?.password)
-        // 비밀번호 확인 에러 메세지 설정
-        printPasswordCheckErrorText()
-
-        // 서비스 제공자 스피너와 입력칸 채우기
-        val userServiceProvider = userEntity?.email?.substringAfter('@')
-        Log.d("dkj", "$userServiceProvider")
-        val index = serviceProviderList.indexOf(userServiceProvider)
-        spinnerSignUp.setSelection(
-            if (index < 0) {
-                editSignUpEmailBack.setText(userServiceProvider)
-                serviceProviderList.lastIndex
-            } else {
-                index
-            }
-        )
-
-        // 회원수정버튼 활성화
-        setButtonEnable()
+    // 기본 EditText와 TextView 텍스트 세팅
+    private fun setViewsText() {
+        viewModel.setViewsText()
     }
 
     // 회원가입 버튼 클릭 이벤트 함수
     private fun setBtnSignupClickListener() {
-        with(btnSignup) {
-            // 엔트리 타입에 따라 버튼의 문구 변경
-            setText(
-                when (entryType) {
-                    SignUpEntryType.UPDATE -> R.string.sign_up_edit
-                    else -> R.string.sign_up_confirm
-                }
-            )
-            // 엔트리 타입에 따라 버튼 클릭 시 수행하는 함수 변경
+        with(binding.btnSignupCheck) {
             setOnClickListener {
-                if (isButtonEnable()) {
-                    val name = editSignUpName.text.toString()
-                    // 이메일 입력칸의 내용과 이메일 주소 입력칸의 내용을 중간에 @ 포함해서 합치기
-                    val email = editSignUpEmailFront.text.toString() + "@" + serviceProvider
-                    val password = editSignUpPassword.text.toString()
-
-                    when (entryType) {
-                        SignUpEntryType.UPDATE -> editInfo(
-                            userEntity?.email!!,
-                            SignUpUserEntity(name, email, password)
-                        )
-                        else -> setInfo(name, email, password)
-                    }
-
-                    // 로그인 액티비티로 보낼 값 설정
-                    intent.putExtra("name", name)
-                    intent.putExtra("email", email)
-                    intent.putExtra("password", password)
-                    setResult(RESULT_OK, intent)
-                    finish()
-                }
+                // 엔트리 타입에 따라 버튼 클릭 시 수행하는 함수 변경
+                viewModel.onClickSignUp(
+                    binding.editSignupName.text.toString(),
+                    binding.editSignupEmailFront.text.toString() + "@" + binding.editSignupEmailBack.text.toString(),
+                    binding.editSignupPassword.text.toString()
+                )
             }
         }
     }
@@ -196,31 +188,29 @@ class SignUpActivity : AppCompatActivity() {
             et.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus.not()) {
                     et.setErrorText()
-                    setButtonEnable()
                 }
             }
         }
     }
 
+    // Text 변화를 감지하는 리스너 함수
     private fun setTextChangedListener() {
         editTexts.forEach { et ->
             et.addTextChangedListener {
                 et.setErrorText()
-                setButtonEnable()
             }
         }
     }
 
+    // 스피너 세팅 & 선택 리스너 함수
     private fun setServiceProvider() {
-        // 어댑터 설정
-        val adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_item, serviceProviderList
-        )
+        // 스피너 어댑터 변수
+        val adapter = ArrayAdapter(this, R.layout.simple_spinner_item, viewModel.serviceProviderStringList)
         // 어댑터 연결
-        spinnerSignUp.adapter = adapter
+        binding.spinnerSignup.adapter = adapter
 
         // Spinner 아이템 선택 리스너
-        spinnerSignUp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        binding.spinnerSignup.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             // 아이템을 선택하는 경우 호출
             override fun onItemSelected(
                 parent: AdapterView<*>?,
@@ -228,139 +218,53 @@ class SignUpActivity : AppCompatActivity() {
                 position: Int,
                 id: Long
             ) {
-                when (position) {
-                    // 직접 입력을 선택하지 않은 경우
-                    in 0..2 -> setEmailBackViewAndServiceProvider(
-                        false,
-                        parent?.getItemAtPosition(position).toString()
-                    )
-                    // 직접 입력을 선택한 경우
-                    else -> setEmailBackViewAndServiceProvider(true, "")
-                }
+                viewModel.checkSpinnerIdx(position)
             }
 
             override fun onNothingSelected(p0: AdapterView<*>?) = Unit
         }
     }
 
-    private fun setEmailBackViewAndServiceProvider(type: Boolean, s: String) {
-        // 서비스 제공자 뷰 노출 처리
-        editSignUpEmailBack.isVisible = type
-        // 해당 아이템 내용을 저장
-        val index = serviceProviderList.indexOf(userEntity?.email?.substringAfter('@'))
-        serviceProvider = if (index < 0) {
-            s
-        } else {
-            userEntity?.email?.substringAfter('@')!!
-        }
-    }
-
-    private fun setButtonEnable() {
-        btnSignup.isEnabled = isButtonEnable()
-    }
-
-    private fun isButtonEnable(): Boolean =
-        tvSignUpNameError.text.isEmpty()
-                && editSignUpName.text.isNotEmpty()
-                && tvSignUpEmailError.text.isEmpty()
-                && editSignUpEmailFront.text.isNotEmpty()
-                && tvSignUpPasswordError.text.isEmpty()
-                && (tvSignUpPasswordCheckError.text.toString() == getString(SignUpErrorMessage.PASSWORD_CHECK_OK.message))
-
-
+    // EditText의 에러 텍스트를 담당하는 확장함수
     private fun EditText.setErrorText() {
         when (this) {
             // 입력칸이 비어있는 경우에 에러 텍스트 노출
-            editSignUpName -> tvSignUpNameError.text = printNameErrorText()
+            binding.editSignupName -> printNameErrorText()
             // 이메일 입력칸과 비교한 후에 에러 텍스트 노출
-            editSignUpEmailFront, editSignUpEmailBack -> tvSignUpEmailError.text =
-                printEmailErrorText()
+            binding.editSignupEmailFront, binding.editSignupEmailBack -> printEmailErrorText()
             // 초기 세팅으로 노출
-            editSignUpPassword ->
-                tvSignUpPasswordError.text = if (editSignUpPassword.text.isEmpty()) {
-                    changeTextColor(tvSignUpPasswordError, R.color.grey)
-                    getString(SignUpErrorMessage.PASSWORD_HINT.message)
-                } else {
-                    changeTextColor(tvSignUpPasswordError, R.color.red)
-                    printPasswordErrorText()
-                }
+            binding.editSignupPassword -> printPasswordErrorText()
             // 비밀번호가 입력되어있고 비밀번호 확인 입력칸이 비어있는 경우에 에러 텍스트 노출
-            editSignUpPasswordCheck -> tvSignUpPasswordCheckError.text =
-                printPasswordCheckErrorText()
+            binding.editSignupPasswordCheck -> printPasswordCheckErrorText()
         }
+
+        // 회원가입(회원수정) 버튼의 사용가능 판별 함수
+        viewModel.isButtonEnable()
     }
 
-    private fun printNameErrorText(): String = getString(
-        if (editSignUpName.text.toString().isEmpty()) {
-            SignUpErrorMessage.NAME_BLANK
-        } else {
-            SignUpErrorMessage.PASS
-        }.message
-    )
+    // 이름 에러 텍스트 출력 함수
+    private fun printNameErrorText() {
+        viewModel.checkValidName(binding.editSignupName.text.toString())
+    }
 
-    private fun printEmailErrorText(): String {
-        val frontText = editSignUpEmailFront.text.toString()
-        val backText = editSignUpEmailBack.text.toString()
-        return getString(
-            when {
-                backText.isNotEmpty() -> {
-                    if (backText.includeDotCom().not()) {
-                        SignUpErrorMessage.EMAIL_COM
-                    } else {
-                        serviceProvider = backText
-                        SignUpErrorMessage.PASS
-                    }
-                }
-
-                backText.isEmpty() && frontText.isNotEmpty() -> {
-                    if (editSignUpEmailBack.isVisible) {
-                        SignUpErrorMessage.EMAIL_SERVICE_PROVIDER
-                    } else {
-                        SignUpErrorMessage.PASS
-                    }
-                }
-
-                frontText.isEmpty() -> SignUpErrorMessage.EMAIL_BLANK
-                else -> SignUpErrorMessage.PASS
-            }.message
+    // 이메일 에러 텍스트 출력 함수
+    private fun printEmailErrorText() {
+        viewModel.checkValidEmail(
+            binding.editSignupEmailFront.text.toString(),
+            binding.editSignupEmailBack.text.toString()
         )
     }
 
-    private fun printPasswordErrorText(): String {
-        val text = editSignUpPassword.text.toString()
-        return getString(
-            when {
-                // 비밀번호의 길이 체크하고 에러 텍스트 노출
-                text.length < 8 || text.length >= 20 -> SignUpErrorMessage.PASSWORD_LENGTH
-                // 비밀번호의 대문자 포함 여부 체크하고 에러 텍스트 노출
-                text.includeUpperCase().not() -> SignUpErrorMessage.PASSWORD_UPPER_CASE
-                // 비밀번호의 숫자 포함 여부 체크하고 에러 텍스트 노출
-                text.includeNumber().not() -> SignUpErrorMessage.PASSWORD_NUMBER
-                // 비밀번호의 특수문자 포함 여부 체크하고 에러 텍스트 노출
-                text.includeSpecialCharacters()
-                    .not() -> SignUpErrorMessage.PASSWORD_SPECIAL_CHARACTERS
-                // 통과
-                else -> SignUpErrorMessage.PASS
-            }.message
-        )
+    // 비밀번호 에러 텍스트 출력 함수
+    private fun printPasswordErrorText() {
+        viewModel.checkValidPassword(binding.editSignupPassword.text.toString())
     }
 
-    private fun printPasswordCheckErrorText(): String = getString(
-        if (editSignUpPassword.text.toString() != editSignUpPasswordCheck.text.toString()) {
-            changeTextColor(tvSignUpPasswordCheckError, R.color.red)
-            SignUpErrorMessage.PASSWORD_CHECK_NOT
-        } else {
-            changeTextColor(tvSignUpPasswordCheckError, R.color.blue)
-            SignUpErrorMessage.PASSWORD_CHECK_OK
-        }.message
-    )
-
-    private fun changeTextColor(textView: TextView, color: Int) {
-        textView.setTextColor(
-            ContextCompat.getColor(
-                this@SignUpActivity,
-                color
-            )
+    // 비밀번호 확인 에러 텍스트 출력 함수
+    private fun printPasswordCheckErrorText() {
+        viewModel.checkValidPasswordCheck(
+            binding.editSignupPassword.text.toString(),
+            binding.editSignupPasswordCheck.text.toString()
         )
     }
 }
